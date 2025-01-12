@@ -7,7 +7,7 @@ import re
 # Initialize MediaPipe Pose and Drawing utilities
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
-pose = mp_pose.Pose(min_detection_confidence=0.7, min_tracking_confidence=0.7)
+pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
 
 def process_pose_image(image_data):
     """
@@ -75,7 +75,7 @@ def get_shoulder_alignment_percentage(results):
     right_shoulder_angle = angles["right_shoulder"]
     
     # Define tolerance angle value
-    tolerance_angle = 15
+    tolerance_angle = 0
     
     # Analyze the angles
     if abs(left_shoulder_angle - right_shoulder_angle) <= tolerance_angle:
@@ -109,48 +109,45 @@ def calculate_angles(results):
     # Define key points for left and right sides
     left_shoulder = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,
                      landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
-    left_elbow = [landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].x,
-                  landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].y]
-    left_wrist = [landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].x,
-                  landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].y]
     left_hip = [landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].x,
                 landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].y]
     left_knee = [landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].x,
                  landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].y]
-    left_ankle = [landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].x,
-                  landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].y]
-
     right_shoulder = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x,
                       landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
-    right_elbow = [landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].x,
-                   landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].y]
-    right_wrist = [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].x,
-                   landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].y]
     right_hip = [landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].x,
                  landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].y]
     right_knee = [landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].x,
                   landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].y]
-    right_ankle = [landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].x,
-                   landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].y]
 
-    # Calculate angles for left side
-    l_elbow_angle = calculate_angle(left_shoulder, left_elbow, left_wrist)
-    l_hip_angle = calculate_angle(left_shoulder, left_hip, left_knee)
-    l_knee_angle = calculate_angle(left_hip, left_knee, left_ankle)
+    left_wrist = [landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].x,
+                  landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].y]
+    right_wrist = [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].x,
+                   landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].y]
 
-    # Calculate angles for right side
-    r_elbow_angle = calculate_angle(right_shoulder, right_elbow, right_wrist)
-    r_hip_angle = calculate_angle(right_shoulder, right_hip, right_knee)
-    r_knee_angle = calculate_angle(right_hip, right_knee, right_ankle)
+    nose = [landmarks[mp_pose.PoseLandmark.NOSE.value].x,
+            landmarks[mp_pose.PoseLandmark.NOSE.value].y]
+
+    # Calculate angles for shoulders
+    left_shoulder_angle = calculate_angle(left_hip, left_shoulder, right_shoulder)
+    right_shoulder_angle = calculate_angle(right_hip, right_shoulder, left_shoulder)
+
+    # Calculate other angles (elbow and knee)
+    l_elbow_angle = calculate_angle(left_hip, left_shoulder, left_wrist)
+    l_knee_angle = calculate_angle(left_hip, left_knee, left_knee)
+    r_elbow_angle = calculate_angle(right_hip, right_shoulder, right_wrist)
+    r_knee_angle = calculate_angle(right_hip, right_knee, right_knee)
+    head_angle = calculate_angle(left_shoulder, nose, right_shoulder)
 
     return {
+        "left_shoulder": left_shoulder_angle,
+        "right_shoulder": right_shoulder_angle,
         "left_elbow": l_elbow_angle,
-        "left_hip": l_hip_angle,
         "left_knee": l_knee_angle,
         "right_elbow": r_elbow_angle,
-        "right_hip": r_hip_angle,
         "right_knee": r_knee_angle,
     }
+
 
 def extract_percentage(shoulder_string):
     # Use regular expression to find the percentage in the string
