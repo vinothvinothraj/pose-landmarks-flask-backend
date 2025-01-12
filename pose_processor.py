@@ -3,7 +3,7 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import base64
-
+import re
 # Initialize MediaPipe Pose and Drawing utilities
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
@@ -24,14 +24,24 @@ def process_pose_image(image_data):
 
     messages = {
         "nose": "No landmarks detected for nose",
-        "shoulder": "No landmarks detected for shoulders"
+        "shoulder": "No landmarks detected for shoulders",
+        "angles": "No landmarks detected for angles",
+        "overall_percentage": "No data available"
     }
     
     # Check for landmarks and evaluate conditions
     if results.pose_landmarks:
         # Get messages based on nose and shoulder conditions
         messages["nose"] = check_nose_position(results)
-        messages["shoulder"] = check_shoulder_position(results)
+        messages["shoulder"] = get_shoulder_alignment_percentage(results)
+
+         # Calculate angles and include them in messages
+        angles = calculate_angles(results)
+        messages["angles"] = angles
+
+         # Calculate overall percentage and include it in messages
+        overall_percentage = calculate_overall_percentage(results)
+        messages["overall_percentage"] = overall_percentage
 
         # Draw landmarks on the frame if detected
         mp_drawing.draw_landmarks(
@@ -58,16 +68,101 @@ def check_nose_position(results):
     else:
         return "Head is in a neutral position"
 
-def check_shoulder_position(results):
-    """
-    Check the relative position of the shoulders to detect slouching or upright posture.
-    """
-    left_shoulder = results.pose_landmarks.landmark[mp_pose.PoseLandmark.LEFT_SHOULDER].y
-    right_shoulder = results.pose_landmarks.landmark[mp_pose.PoseLandmark.RIGHT_SHOULDER].y
+def get_shoulder_alignment_percentage(results):
+    # Get shoulder angles from calculate_angles function
+    angles = calculate_angles(results)
+    left_shoulder_angle = angles["left_shoulder"]
+    right_shoulder_angle = angles["right_shoulder"]
     
-    # Compare shoulder positions to check for symmetry (example condition)
-    if abs(left_shoulder - right_shoulder) > 0.1:
-        return "Shoulders are not level"
+    # Define tolerance angle value
+    tolerance_angle = 15
+    
+    # Analyze the angles
+    if abs(left_shoulder_angle - right_shoulder_angle) <= tolerance_angle:
+        return "Shoulders are aligned: 100%"
     else:
-        return "Shoulders are level"
+        alignment_percentage = max(0, 100 - abs(left_shoulder_angle - right_shoulder_angle))
+        return f"Shoulders are not aligned: {alignment_percentage}%"
 
+def calculate_angle(a, b, c):
+    """
+    Calculate the angle between three points.
+    """
+    a = np.array(a)  # first
+    b = np.array(b)  # mid
+    c = np.array(c)  # end
+
+    radians = np.arctan2(c[1] - b[1], c[0] - b[0]) - np.arctan2(a[1] - b[1], a[0] - b[0])
+    angle = np.abs(radians * 180.0 / np.pi)
+
+    if angle > 180.0:
+        angle = 360 - angle
+
+    return int(angle)
+
+def calculate_angles(results):
+    """
+    Calculate angles for specific body parts using landmarks.
+    """
+    landmarks = results.pose_landmarks.landmark
+
+    # Define key points for left and right sides
+    left_shoulder = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,
+                     landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
+    left_elbow = [landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].x,
+                  landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].y]
+    left_wrist = [landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].x,
+                  landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].y]
+    left_hip = [landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].x,
+                landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].y]
+    left_knee = [landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].x,
+                 landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].y]
+    left_ankle = [landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].x,
+                  landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].y]
+
+    right_shoulder = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x,
+                      landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
+    right_elbow = [landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].x,
+                   landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].y]
+    right_wrist = [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].x,
+                   landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].y]
+    right_hip = [landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].x,
+                 landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].y]
+    right_knee = [landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].x,
+                  landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].y]
+    right_ankle = [landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].x,
+                   landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].y]
+
+    # Calculate angles for left side
+    l_elbow_angle = calculate_angle(left_shoulder, left_elbow, left_wrist)
+    l_hip_angle = calculate_angle(left_shoulder, left_hip, left_knee)
+    l_knee_angle = calculate_angle(left_hip, left_knee, left_ankle)
+
+    # Calculate angles for right side
+    r_elbow_angle = calculate_angle(right_shoulder, right_elbow, right_wrist)
+    r_hip_angle = calculate_angle(right_shoulder, right_hip, right_knee)
+    r_knee_angle = calculate_angle(right_hip, right_knee, right_ankle)
+
+    return {
+        "left_elbow": l_elbow_angle,
+        "left_hip": l_hip_angle,
+        "left_knee": l_knee_angle,
+        "right_elbow": r_elbow_angle,
+        "right_hip": r_hip_angle,
+        "right_knee": r_knee_angle,
+    }
+
+def extract_percentage(shoulder_string):
+    # Use regular expression to find the percentage in the string
+    match = re.search(r'(\d+)%', shoulder_string)
+    if match:
+        return int(match.group(1))
+    return 0
+
+def calculate_overall_percentage(results):
+    shoulder_string = get_shoulder_alignment_percentage(results)  # Assume this returns a string with a percentage
+    shoulder_score = extract_percentage(shoulder_string)  # Extract the numerical percentage
+
+    # Calculate overall percentage (example logic)
+    overall_percentage = shoulder_score
+    return overall_percentage

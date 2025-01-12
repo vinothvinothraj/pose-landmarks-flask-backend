@@ -15,7 +15,9 @@ def handle_frame(data):
     emit('processed_frame', {
         'image': frame_encoded,
         'nose_message': messages["nose"],
-        'shoulder_message': messages["shoulder"]
+        'shoulder_message': messages["shoulder"],
+        'angles': messages["angles"],
+        'overall_percentage': messages["overall_percentage"]
     })
 
 if __name__ == '__main__':
