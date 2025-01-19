@@ -26,7 +26,9 @@ def process_pose_image(image_data):
         "nose": "No landmarks detected for nose",
         "shoulder": "No landmarks detected for shoulders",
         "angles": "No landmarks detected for angles",
-        "overall_percentage": "No data available"
+        "overall_percentage": "No data available",
+        "head_horizontal": "No data available",
+        "head_horizontal_percentage": 0,
     }
     
     # Check for landmarks and evaluate conditions
@@ -38,6 +40,11 @@ def process_pose_image(image_data):
          # Calculate angles and include them in messages
         angles = calculate_angles(results)
         messages["angles"] = angles
+
+        # Head alignment messages and percentage
+        head_alignment = get_head_alignment_status(results)
+        messages["head_horizontal"] = head_alignment["horizontal_status"]
+        messages["head_horizontal_percentage"] = head_alignment["horizontal_percentage"]
 
          # Calculate overall percentage and include it in messages
         overall_percentage = calculate_overall_percentage(results)
@@ -165,4 +172,37 @@ def calculate_overall_percentage(results):
     return overall_percentage
 
 
-    
+def get_head_alignment_status(results):
+    """
+    Determine the horizontal alignment of the head based on the
+    nose and shoulder landmarks and calculate a percentage score.
+    """
+    landmarks = results.pose_landmarks.landmark
+
+    # Get nose and shoulder positions
+    nose = landmarks[mp_pose.PoseLandmark.NOSE.value]
+    left_shoulder = landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value]
+    right_shoulder = landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value]
+
+    # Calculate the midpoint of the shoulders
+    shoulder_mid_x = (left_shoulder.x + right_shoulder.x) / 2
+
+    # Horizontal alignment
+    deviation = abs(nose.x - shoulder_mid_x)  # Distance of the nose from the shoulder midpoint
+    tolerance = 0.05  # Acceptable deviation threshold
+
+    if deviation <= tolerance:
+        alignment_percentage = 100
+        horizontal_status = f"Head is horizontally aligned: {alignment_percentage}%"
+    else:
+        # Reduce percentage based on how far the nose deviates beyond the tolerance
+        alignment_percentage = max(0, int(100 - (deviation - tolerance) * 2000))
+        if nose.x < shoulder_mid_x:
+            horizontal_status = f"Head is tilted to the left: {alignment_percentage}%"
+        else:
+            horizontal_status = f"Head is tilted to the right: {alignment_percentage}%"
+
+    return {
+        "horizontal_status": horizontal_status,
+        "horizontal_percentage": alignment_percentage
+    }

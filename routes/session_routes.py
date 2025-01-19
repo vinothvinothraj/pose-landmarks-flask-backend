@@ -15,6 +15,10 @@ def create_session():
     user_id = data.get('user_id')
     posture_type = data.get('posture_type')
     start_time = data.get('start_time', datetime.utcnow())  # Default to current time
+    end_time = data.get('end_time')
+    avg_good_posture = data.get('avg_good_posture')
+    avg_bad_posture = data.get('avg_bad_posture')
+    session_posture_score = data.get('session_posture_score')
 
     if not session_name or not posture_type:
         return jsonify({"error": "Session name and posture type are required"}), 400
@@ -23,7 +27,11 @@ def create_session():
         session_name=session_name,
         user_id=user_id,
         posture_type=posture_type,
-        start_time=start_time
+        start_time=start_time,
+        end_time=end_time,
+        avg_good_posture=avg_good_posture,
+        avg_bad_posture=avg_bad_posture,
+        session_posture_score=session_posture_score
     )
     db.session.add(session)
     db.session.commit()
