@@ -74,3 +74,25 @@ def delete_session(session_id):
     db.session.delete(session)
     db.session.commit()
     return jsonify({"message": f"Session with ID {session_id} deleted successfully"}), 200
+
+
+# Get all sessions for a given user_id
+@session_bp.route('/sessions/user/<int:user_id>', methods=['GET'])
+def get_sessions_by_user(user_id):
+    sessions = Session.query.filter_by(user_id=user_id).all()
+    if not sessions:
+        return jsonify({"message": f"No sessions found for user_id {user_id}"}), 404
+
+    session_list = [{
+        "id": session.id,
+        "session_name": session.session_name,
+        "user_id": session.user_id,
+        "posture_type": session.posture_type,
+        "start_time": session.start_time,
+        "end_time": session.end_time,
+        "avg_good_posture": session.avg_good_posture,
+        "avg_bad_posture": session.avg_bad_posture,
+        "session_posture_score": session.session_posture_score
+    } for session in sessions]
+    
+    return jsonify({"user_id": user_id, "sessions": session_list}), 200
