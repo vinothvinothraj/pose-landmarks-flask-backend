@@ -36,7 +36,10 @@ def handle_frame(data):
         'nose_message': messages["nose"],
         'shoulder_message': messages["shoulder"],
         'angles': messages["angles"],
-        'overall_percentage': messages["overall_percentage"]
+        'overall_percentage': messages["overall_percentage"],
+        'head_horizontal_message': messages["head_horizontal"],  
+        'head_horizontal_percentage': messages["head_horizontal_percentage"]
+
     })
 
 if __name__ == '__main__':
