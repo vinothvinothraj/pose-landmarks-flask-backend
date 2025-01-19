@@ -2,8 +2,27 @@
 from flask import Flask
 from flask_socketio import SocketIO, emit
 from pose_processor import process_pose_image  # Import the processing function
+from config import Config
+from models import init_db, db
+from models.user import User
+from models.session import Session
+from flask_migrate import Migrate
+from routes import init_routes
+from flask_cors import CORS
 
 app = Flask(__name__)
+app.config.from_object(Config)
+
+# Initialize database and migrations
+init_db(app)
+migrate = Migrate(app, db)
+
+# Initialize routes
+init_routes(app)
+
+# Enable CORS globally for the Flask app
+CORS(app)
+
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 @socketio.on('frame')

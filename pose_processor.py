@@ -82,7 +82,7 @@ def get_shoulder_alignment_percentage(results):
         return "Shoulders are aligned: 100%"
     else:
         alignment_percentage = max(0, 100 - abs(left_shoulder_angle - right_shoulder_angle))
-        return f"Shoulders are not aligned: {alignment_percentage}%"
+        return f"Shoulders aligned: {alignment_percentage}%"
 
 def calculate_angle(a, b, c):
     """
@@ -163,3 +163,6 @@ def calculate_overall_percentage(results):
     # Calculate overall percentage (example logic)
     overall_percentage = shoulder_score
     return overall_percentage
+
+
+    
