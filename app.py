@@ -33,7 +33,6 @@ def handle_frame(data):
     # Emit the processed frame and individual messages for each landmark to the client
     emit('processed_frame', {
         'image': frame_encoded,
-        'nose_message': messages["nose"],
         'shoulder_message': messages["shoulder"],
         'angles': messages["angles"],
         'overall_percentage': messages["overall_percentage"],

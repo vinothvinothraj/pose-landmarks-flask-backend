@@ -23,7 +23,6 @@ def process_pose_image(image_data):
     results = pose.process(frame_rgb)
 
     messages = {
-        "nose": "No landmarks detected for nose",
         "shoulder": "No landmarks detected for shoulders",
         "angles": "No landmarks detected for angles",
         "overall_percentage": "No data available",
@@ -33,8 +32,6 @@ def process_pose_image(image_data):
     
     # Check for landmarks and evaluate conditions
     if results.pose_landmarks:
-        # Get messages based on nose and shoulder conditions
-        messages["nose"] = check_nose_position(results)
         messages["shoulder"] = get_shoulder_alignment_percentage(results)
 
          # Calculate angles and include them in messages
@@ -62,18 +59,6 @@ def process_pose_image(image_data):
     frame_encoded = base64.b64encode(buffer).decode('utf-8')
     
     return frame_encoded, messages
-
-def check_nose_position(results):
-    """
-    Check the Y-coordinate of the nose landmark to determine head position.
-    """
-    nose_y = results.pose_landmarks.landmark[mp_pose.PoseLandmark.NOSE].y
-    if nose_y < 0.3:
-        return "Head is raised"
-    elif nose_y > 0.7:
-        return "Head is lowered"
-    else:
-        return "Head is in a neutral position"
 
 def get_shoulder_alignment_percentage(results):
     # Get shoulder angles from calculate_angles function
